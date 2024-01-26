@@ -8,48 +8,43 @@ import numpy.typing as npt
 
 DType = TypeVar("DType", bound=np.float64)
 HPointType = Annotated[npt.NDArray[DType], Literal["d"]]  # histogram dimension of d
-XPointType = Annotated[npt.NDArray[DType], Literal["d^2"]]  # x dimension of d^2
-YPointType = Annotated[npt.NDArray[DType], Literal["2d"]]  # y dimension 2d
+XPointType = Annotated[npt.NDArray[DType], Literal["d", "d"]]  # x dimension of d * d
 
 
 class Point:
-    def __init__(self, x: XPointType, y: YPointType) -> None:
-        self._x: XPointType = x
-        self._y: YPointType = y
-
-    @property
-    def x(self) -> XPointType:
-        return self._x
-
-    @x.setter
-    def x(self, new_x: XPointType) -> None:
-        self._x = new_x
-
-    @property
-    def y(self) -> YPointType:
-        return self._y
-
-    @y.setter
-    def y(self, new_y: YPointType) -> None:
-        self._y = new_y
+    def __init__(self, x: XPointType, p: HPointType, u: HPointType, v: HPointType) -> None:
+        """
+        :param XPointType x: Primal variable.
+        :param HPointType p: Primal variable.
+        :param HPointType u: Dual variable.
+        :param HPointType v: Dual variable.
+        """
+        self.x: XPointType = x
+        self.p: HPointType = p
+        self.u: HPointType = u
+        self.v: HPointType = v
 
     def __iadd__(self, z: Point) -> Point:
-        self._x += z.x
-        self._y += z.y
+        self.x += z.x
+        self.p += z.p
+        self.u += z.v
+        self.v += z.v
         return self
 
     def __add__(self, z: Point) -> Point:
-        new_z = Point(self._x, self._y)
+        new_z = Point(self.x, self.p, self.u, self.v)
         new_z += z
         return new_z
 
     def __isub__(self, z: Point) -> Point:
-        self._x -= z.x
-        self._y -= z.y
+        self.x -= z.x
+        self.p -= z.p
+        self.u -= z.u
+        self.v -= z.v
         return self
 
     def __sub__(self, z: Point) -> Point:
-        new_z = Point(self._x, self._y)
+        new_z = Point(self.x, self.p, self.u, self.v)
         new_z -= z
         return new_z
 
@@ -74,35 +69,52 @@ class BasePointOracle(ABC):
         pass
 
     @abstractmethod
-    def grad_y(self, z: Point) -> YPointType:
+    def grad_p(self, z: Point) -> HPointType:
         """
-        Computes the value of y gradient at point z.
+        Computes the value of p gradient at point z.
         """
         pass
 
     @abstractmethod
+    def grad_u(self, z: Point) -> HPointType:
+        """
+        Computes the value of u gradient at point z.
+        """
+        pass
+
+    @abstractmethod
+    def grad_v(self, z: Point) -> HPointType:
+        """
+        Computes the value of v gradient at point z.
+        """
+        pass
+
     def G(self, z: Point) -> Point:
         """
         Computes the value of operator (grad_x(z), -grad_y(z)) at point z.
         """
-        pass
+        return Point(self.grad_x(z), self.grad_p(z), -self.grad_u(z), -self.grad_v(z))
 
 
-AType = Annotated[npt.NDArray[DType], Literal["2d", "d^2"]]  # histogram dimension of (2d, d^2)
-
-
-class WassersteinDistanceOracle(BasePointOracle):
-    def __init__(self, p: HPointType, q: HPointType, d: XPointType, A: AType) -> None:
-        self._b: XPointType = np.vstack((p, q))
-        self._d: XPointType = d
-        self._d_norm = np.max(np.abs(self._d))
-        self._A: AType = A
+class OTProblemOracle(BasePointOracle):
+    def __init__(self, q: HPointType, C: XPointType) -> None:
+        self.q = q
+        self.C = C
+        self.C_norm = np.max(np.abs(self.C))
+        self.one = np.ones_like(q)
 
     def f(self, z: Point) -> float:
-        return np.dot(self._d, z.x) + 2 * self._d_norm * (z.y.T @ self._A @ z.x - np.dot(self._b, z.y))
+        """Lagrangian function at point (p, z)."""
+        return (self.C * z.x).sum() + np.dot(z.u, z.x.sum(axis=0) - z.p) + np.dot(z.v, z.x.sum(axis=1) - self.q)
 
     def grad_x(self, z: Point) -> XPointType:
-        return self._d + 2 * self._d_norm * (self._A.T @ z.y)
+        return self.C + z.x + np.outer(z.u, self.one) + np.outer(self.one, z.v)
 
-    def grad_y(self, z: Point) -> YPointType:
-        return 2 * self._d_norm * (self._A @ z.x - self._b)
+    def grad_p(self, z: Point) -> HPointType:
+        return -z.u
+
+    def grad_u(self, z: Point) -> HPointType:
+        return z.x.sum(axis=0) - z.p
+
+    def grad_v(self, z: Point) -> HPointType:
+        return z.x.sum(axis=1) - self.q

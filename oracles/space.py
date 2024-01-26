@@ -6,61 +6,40 @@ from typing import Annotated, Literal
 import numpy as np
 import numpy.typing as npt
 
-from oracles.point import DType, HPointType, XPointType, YPointType
+from oracles.point import DType, HPointType
 
-XSpaceType = Annotated[npt.NDArray[DType], Literal["T", "d^2"]]  # x dimension of T * d^2
-YSpaceType = Annotated[npt.NDArray[DType], Literal["T", "2d"]]  # y dimension T * 2d
+XSpaceType = Annotated[npt.NDArray[DType], Literal["T", "d", "d"]]  # x dimension of T * d * 2
+HSpaceType = Annotated[npt.NDArray[DType], Literal["T", "d"]]  # y dimension T * d
 
 
 class SpacePoint:
-    def __init__(self, xs: list[XPointType], p: HPointType, ys: list[YPointType]) -> None:
-        self._x: XSpaceType = np.array(xs)
-        self._p: HPointType = p
-        self._y: YSpaceType = np.array(ys)
-
-    @property
-    def x(self) -> XSpaceType:
-        return self._x
-
-    @x.setter
-    def x(self, new_x: XSpaceType) -> None:
-        self._x = new_x
-
-    @property
-    def y(self) -> YSpaceType:
-        return self._y
-
-    @y.setter
-    def y(self, new_y: YSpaceType) -> None:
-        self._y = new_y
-
-    @property
-    def p(self) -> HPointType:
-        return self._p
-
-    @p.setter
-    def p(self, new_p: HPointType) -> None:
-        self._p = new_p
+    def __init__(self, x: XSpaceType, p: HPointType, u: HSpaceType, v: HSpaceType) -> None:
+        self.x: XSpaceType = x
+        self.p: HPointType = p
+        self.u: HSpaceType = u
+        self.v: HSpaceType = v
 
     def __iadd__(self, z: SpacePoint) -> SpacePoint:
-        self._x += z.x
-        self._p += z.p
-        self._y += z.y
+        self.x += z.x
+        self.p += z.p
+        self.u += z.u
+        self.v += z.v
         return self
 
     def __add__(self, z: SpacePoint) -> SpacePoint:
-        new_z = SpacePoint(self._x.tolist(), self._p, self._y.tolist())
+        new_z = SpacePoint(self.x, self.p, self.u, self.v)
         new_z += z
         return new_z
 
     def __isub__(self, z: SpacePoint) -> SpacePoint:
-        self._x -= z.x
-        self._p -= z.p
-        self._y -= z.y
+        self.x -= z.x
+        self.p -= z.p
+        self.u -= z.u
+        self.v -= z.v
         return self
 
     def __sub__(self, z: SpacePoint) -> SpacePoint:
-        new_z = SpacePoint(self._x.tolist(), self._p, self._y.tolist())
+        new_z = SpacePoint(self.x, self.p, self.u, self.v)
         new_z -= z
         return new_z
 
@@ -92,7 +71,14 @@ class BaseSpaceOracle(ABC):
         pass
 
     @abstractmethod
-    def grad_y(self, z: SpacePoint) -> YPointType:
+    def grad_u(self, z: SpacePoint) -> HPointType:
+        """
+        Computes the value of y gradient at point z.
+        """
+        pass
+
+    @abstractmethod
+    def grad_v(self, z: SpacePoint) -> HPointType:
         """
         Computes the value of y gradient at point z.
         """
@@ -102,4 +88,4 @@ class BaseSpaceOracle(ABC):
         """
         Computes the value of operator (grad_x(z), -grad_y(z)) at point z.
         """
-        return SpacePoint(self.grad_x(z).tolist(), self.grad_p(z), -self.grad_y(z).tolist())
+        return SpacePoint(self.grad_x(z), self.grad_p(z), -self.grad_u(z), -self.grad_v(z))
