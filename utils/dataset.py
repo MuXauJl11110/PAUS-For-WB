@@ -11,6 +11,16 @@ from utils.space import project_onto_simplex
 def get_gaussian(
     d: int, K: int, mu_min: float = -5.0, mu_max: float = 5.0, sigma_min: float = 0.8, sigma_max: float = 1.8
 ) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    :param int d: Gaussian support size.
+    :param int K: Number of distributions.
+    :param float mu_min: Minimum expectation., defaults to -5.0
+    :param float mu_max: Maximum expectation, defaults to 5.0
+    :param float sigma_min: TBD., defaults to 0.8
+    :param float sigma_max: TBD., defaults to 1.8
+    :return Tuple[np.ndarray, np.ndarray]: TBD.
+    """
+
     def gaussian(mu: np.ndarray, sigma: np.ndarray, z: np.ndarray) -> np.ndarray:
         return 1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(-((z - mu) ** 2) / (2 * sigma**2))
 
@@ -28,7 +38,7 @@ def get_gaussian(
     bar_true = project_onto_simplex(gaussian(barmu, barsigma, z))
 
     # return gaus, bar_true, z
-    return gaus  # type: ignore
+    return gaus, bar_true  # type: ignore
 
 
 def load_mnist784(target_digit: int):
