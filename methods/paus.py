@@ -32,13 +32,14 @@ class PAUS:
         self.log = log
 
         self.bar_true = bar_true
-        self.dist_true = 0.0
-        for oracle in self.F._oracles:
-            self.dist_true += ot.emd2(bar_true, oracle.q, oracle.C)  # type: ignore
-        self.dist_true /= len(self.F._oracles)
+        if self.bar_true is not None:
+            self.dist_true = 0.0
+            for oracle in self.F._oracles:
+                self.dist_true += ot.emd2(bar_true, oracle.q, oracle.C)  # type: ignore
+            self.dist_true /= len(self.F._oracles)
 
     def fit(
-        self, delta: float, gamma: float | None = None, max_iter: int = 1000, bar_true: np.ndarray | None = None
+        self, delta: float, gamma: float | None = None, max_iter: int = 1000
     ) -> tuple[SpacePoint, dict[str, list[float]]]:
         history: dict[str, list[float]] = defaultdict(list)
 
@@ -60,7 +61,7 @@ class PAUS:
             z_k.u = u_k.u - gamma * G.u
             z_k.v = u_k.v - gamma * G.v
             z_k = project_onto_space(z_k)
-            if self.log and bar_true is not None and (iter_num % 1 == 0):
+            if self.log and self.bar_true is not None and (iter_num % 1 == 0):
                 err = self.dual_gap(z_k.p)
                 # print(f"Iter: {iter_num}, Err: {err}")  # , z_k.p[:10])
                 history["err"].append(err)  # type: ignore
