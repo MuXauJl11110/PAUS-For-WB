@@ -48,6 +48,8 @@ class PAUS:
             gamma = 1 / delta
 
         for iter_num in range(max_iter):
+            if self.log and iter_num % 10 == 0:
+                print("Iter: {iter_num}")
             G_z_k = self.F.G(z_k) - self.F1.G(z_k)
             u_k = self.composite_mp(gamma, z_k, G_z_k)
 
@@ -60,14 +62,13 @@ class PAUS:
             z_k = project_onto_space(z_k)
             if self.log and self.bar_true is not None and (iter_num % 10 == 0):
                 err = self.dual_gap(z_k.p)
-                print(f"Iter: {iter_num}, Err: {err}")  # , z_k.p[:10])
+                print(f"Err: {err}")
                 history["err"].append(err)  # type: ignore
 
         return z_k, history
 
     def dual_gap(self, p: np.ndarray) -> float:
         dist = 0.0
-        print(p)
         for oracle in self.F._oracles:
             dist += ot.emd2(p, oracle.q, oracle.C)  # type: ignore
         return dist / len(self.F._oracles)
