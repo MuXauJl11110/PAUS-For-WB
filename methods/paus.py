@@ -49,7 +49,7 @@ class PAUS:
 
         for iter_num in range(max_iter):
             if self.log and iter_num % 10 == 0:
-                print("Iter: {iter_num}")
+                print(f"Iter: {iter_num}")
             G_z_k = self.F.G(z_k) - self.F1.G(z_k)
             u_k = self.composite_mp(gamma, z_k, G_z_k)
 
