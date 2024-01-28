@@ -7,15 +7,15 @@ from oracles.space import SpacePoint
 def init_space_point(d: int, T: int) -> SpacePoint:
     x = np.array([np.ones((d, d)) / (d * d)] * T)
     p = np.ones(d) / d
-    u = np.array([np.ones(d)] * T)  # np.array([np.zeros(d)] * T)
-    v = np.array([np.ones(d)] * T)  # np.array([np.zeros(d)] * T)
+    u = np.array([np.zeros(d)] * T)
+    v = np.array([np.zeros(d)] * T)
 
     return SpacePoint(x, p, u, v)
 
 
-def project_onto_simplex(x: np.ndarray, eps: float = 0.00001) -> np.ndarray:
-    x[x == 0] = eps
-    x /= np.abs(x).sum()
+def project_onto_simplex(x: np.ndarray, eps: float = 1e-20) -> np.ndarray:
+    x += eps
+    x /= np.sum(x)
     return x
 
 

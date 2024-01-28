@@ -2,7 +2,6 @@ from collections import defaultdict
 
 import numpy as np
 import ot
-from tqdm.notebook import tnrange
 
 from oracles import OperatorOracle, SpacePoint
 from utils.space import init_space_point, project_onto_space
@@ -14,7 +13,7 @@ class PAUS:
         F: OperatorOracle,
         F1: OperatorOracle,
         L_F1: float,
-        T: int,
+        composite_max_iters: int,
         log: bool = True,
         bar_true: np.ndarray | None = None,
     ):
@@ -22,13 +21,13 @@ class PAUS:
         :param OperatorOracle F: Operator of the problem.
         :param OperatorOracle F1: Operator of the server's part of the problem.
         :param float L_server: Parameter of Lipschitz-continuity of the server.
-        :param int T: Number of composite steps.
+        :param int composite_max_iters: Number of composite steps.
         :param bool log: Logging, defaults to False
         """
         self.F = F
         self.F1 = F1
         self.L_F1 = L_F1
-        self.T = T
+        self.composite_max_iters = composite_max_iters
         self.log = log
 
         self.bar_true = bar_true
@@ -48,9 +47,7 @@ class PAUS:
         if gamma is None:
             gamma = 1 / delta
 
-        for iter_num in range(max_iter):  # tnrange(max_iter, desc="Communications performed"):
-            # print(self.F.G(z_k).p)
-            # print(self.F1.G(z_k).p)
+        for iter_num in range(max_iter):
             G_z_k = self.F.G(z_k) - self.F1.G(z_k)
             u_k = self.composite_mp(gamma, z_k, G_z_k)
 
@@ -61,15 +58,16 @@ class PAUS:
             z_k.u = u_k.u - gamma * G.u
             z_k.v = u_k.v - gamma * G.v
             z_k = project_onto_space(z_k)
-            if self.log and self.bar_true is not None and (iter_num % 1 == 0):
+            if self.log and self.bar_true is not None and (iter_num % 10 == 0):
                 err = self.dual_gap(z_k.p)
-                # print(f"Iter: {iter_num}, Err: {err}")  # , z_k.p[:10])
+                print(f"Iter: {iter_num}, Err: {err}")  # , z_k.p[:10])
                 history["err"].append(err)  # type: ignore
 
         return z_k, history
 
     def dual_gap(self, p: np.ndarray) -> float:
         dist = 0.0
+        print(p)
         for oracle in self.F._oracles:
             dist += ot.emd2(p, oracle.q, oracle.C)  # type: ignore
         return dist / len(self.F._oracles)
@@ -79,7 +77,7 @@ class PAUS:
         v_t_next = init_space_point(len(z_k.p), len(z_k.x))
         eta = 1 / (2 * gamma * self.L_F1)
 
-        for t in range(self.T):  # tnrange(self.T, desc="Solving composite"):
+        for t in range(self.composite_max_iters):
             G_t = self.F1.G(v_t) + G_z_k
             v_t_next.x = z_k.x * np.power(np.exp(-gamma * eta * G_t.x) * v_t.x / z_k.x, 1 / (eta + 1))
             v_t_next.p = z_k.p * np.power(np.exp(-gamma * eta * G_t.p) * v_t.p / z_k.p, 1 / (eta + 1))
