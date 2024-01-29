@@ -87,10 +87,10 @@ class PAUS:
             v_t_next = project_onto_space(v_t_next)
 
             G_t_next = self.F1.G(v_t_next) + G_z_k
-            v_t.x = z_k.x * np.power(np.exp(-gamma * eta * G_t_next.x) * v_t_next.x / z_k.x, 1 / (eta + 1))
-            v_t.p = z_k.p * np.power(np.exp(-gamma * eta * G_t_next.p) * v_t_next.p / z_k.p, 1 / (eta + 1))
-            v_t.u = 0.5 * (z_k.u + v_t_next.u - gamma * eta * G_t_next.u)
-            v_t.v = 0.5 * (z_k.v + v_t_next.v - gamma * eta * G_t_next.v)
+            v_t.x = z_k.x * np.power(np.exp(-gamma * eta * G_t_next.x) * v_t.x / z_k.x, 1 / (eta + 1))
+            v_t.p = z_k.p * np.power(np.exp(-gamma * eta * G_t_next.p) * v_t.p / z_k.p, 1 / (eta + 1))
+            v_t.u = 0.5 * (z_k.u + v_t.u - gamma * eta * G_t_next.u)
+            v_t.v = 0.5 * (z_k.v + v_t.v - gamma * eta * G_t_next.v)
             v_t = project_onto_space(v_t)
 
         return v_t
