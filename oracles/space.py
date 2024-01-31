@@ -3,7 +3,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Annotated, Literal
 
-import numpy as np
 import numpy.typing as npt
 
 from oracles.point import DType, HPointType
@@ -27,9 +26,7 @@ class SpacePoint:
         return self
 
     def __add__(self, z: SpacePoint) -> SpacePoint:
-        new_z = SpacePoint(self.x, self.p, self.u, self.v)
-        new_z += z
-        return new_z
+        return SpacePoint(self.x + z.x, self.p + z.p, self.u + z.u, self.v + z.v)
 
     def __isub__(self, z: SpacePoint) -> SpacePoint:
         self.x -= z.x
@@ -39,9 +36,7 @@ class SpacePoint:
         return self
 
     def __sub__(self, z: SpacePoint) -> SpacePoint:
-        new_z = SpacePoint(self.x, self.p, self.u, self.v)
-        new_z -= z
-        return new_z
+        return SpacePoint(self.x - z.x, self.p - z.p, self.u - z.u, self.v - z.v)
 
 
 class BaseSpaceOracle(ABC):

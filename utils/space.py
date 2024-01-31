@@ -19,7 +19,7 @@ def project_onto_simplex(x: np.ndarray, eps: float = 1e-20) -> np.ndarray:
     return x
 
 
-def project_onto_inf_ball(x: np.ndarray, eps: float = 0.00001, radius: float = 1.0) -> np.ndarray:
+def project_onto_inf_ball(x: np.ndarray, radius: float = 1.0) -> np.ndarray:
     mask = np.abs(x) > radius
     x[mask] = np.sign(x[mask])
     return x

@@ -31,9 +31,8 @@ class OperatorOracle(BaseSpaceOracle):
 
     def grad_x(self, z: SpacePoint) -> XSpaceType:
         for i in range(self._n):  # tnrange(self._n, desc="Grad x"):
-            self._grad_x[i] = self._oracles[i].grad_x(Point(z.x[i], z.p, z.u[i], z.v[i]))
+            self._grad_x[i] = self._oracles[i].grad_x(Point(z.x[i], z.p, z.u[i], z.v[i])) / self._n
 
-        self._grad_x /= self._n
         return self._grad_x
 
     def grad_p(self, z: SpacePoint) -> HPointType:
@@ -46,14 +45,12 @@ class OperatorOracle(BaseSpaceOracle):
 
     def grad_u(self, z: SpacePoint) -> HSpaceType:
         for i in range(self._n):  # tnrange(self._n, desc="Grad u"):
-            self._grad_u[i] = self._oracles[i].grad_u(Point(z.x[i], z.p, z.u[i], z.v[i]))
+            self._grad_u[i] = self._oracles[i].grad_u(Point(z.x[i], z.p, z.u[i], z.v[i])) / self._n
 
-        self._grad_u /= self._n
         return self._grad_u
 
     def grad_v(self, z: SpacePoint) -> HSpaceType:
         for i in range(self._n):  # tnrange(self._n, desc="Grad v"):
-            self._grad_v[i] = self._oracles[i].grad_v(Point(z.x[i], z.p, z.u[i], z.v[i]))
+            self._grad_v[i] = self._oracles[i].grad_v(Point(z.x[i], z.p, z.u[i], z.v[i])) / self._n
 
-        self._grad_v /= self._n
         return self._grad_v

@@ -4,6 +4,7 @@ import numpy as np
 import ot
 
 from oracles import OperatorOracle, SpacePoint
+from oracles.point import HPointType
 from utils.space import init_space_point, project_onto_space
 
 
@@ -39,39 +40,41 @@ class PAUS:
 
     def fit(
         self, delta: float, gamma: float | None = None, max_iter: int = 1000
-    ) -> tuple[SpacePoint, dict[str, list[float]]]:
+    ) -> tuple[HPointType, dict[str, list[float]]]:
         history: dict[str, list[float]] = defaultdict(list)
 
         z_k = init_space_point(len(self.F._grad_p), len(self.F._grad_x))
         u_k = init_space_point(len(self.F._grad_p), len(self.F._grad_x))
+
+        output_p = u_k.p.copy()
         if gamma is None:
             gamma = 1 / delta
 
-        for iter_num in range(max_iter):
-            if self.log and iter_num % 10 == 0:
-                print(f"Iter: {iter_num}")
+        for i in range(max_iter):
             G_z_k = self.F.G(z_k) - self.F1.G(z_k)
             u_k = self.composite_mp(gamma, z_k, G_z_k)
 
             G_u_k = self.F.G(u_k) - self.F1.G(u_k)
-            G = G_u_k + G_z_k
+            G = G_u_k - G_z_k
             z_k.x = u_k.x * np.exp(-gamma * G.x)
             z_k.p = u_k.p * np.exp(-gamma * G.p)
             z_k.u = u_k.u - gamma * G.u
             z_k.v = u_k.v - gamma * G.v
             z_k = project_onto_space(z_k)
-            if self.log and self.bar_true is not None and (iter_num % 10 == 0):
-                err = self.dual_gap(z_k.p)
-                print(f"Err: {err}")
-                history["err"].append(err)  # type: ignore
+            output_p = ((i + 1) * output_p + u_k.p) / (i + 2)
+            if self.log and self.bar_true is not None and (i % 50 == 0):
+                d_gap = self.dual_gap(output_p)
+                print(f"Iter: {i}, Dual gap: {d_gap}")
+                history["dual_gap"].append(d_gap)
+                history["iter"].append(i)  # type: ignore
 
-        return z_k, history
+        return output_p, history
 
     def dual_gap(self, p: np.ndarray) -> float:
         dist = 0.0
         for oracle in self.F._oracles:
             dist += ot.emd2(p, oracle.q, oracle.C)  # type: ignore
-        return dist / len(self.F._oracles)
+        return dist / len(self.F._oracles) - self.dist_true
 
     def composite_mp(self, gamma: float, z_k: SpacePoint, G_z_k: SpacePoint) -> SpacePoint:
         v_t = init_space_point(len(z_k.p), len(z_k.x))

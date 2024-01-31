@@ -32,9 +32,7 @@ class Point:
         return self
 
     def __add__(self, z: Point) -> Point:
-        new_z = Point(self.x, self.p, self.u, self.v)
-        new_z += z
-        return new_z
+        return Point(self.x + z.x, self.p + z.p, self.u + z.u, self.v + z.v)
 
     def __isub__(self, z: Point) -> Point:
         self.x -= z.x
@@ -44,9 +42,7 @@ class Point:
         return self
 
     def __sub__(self, z: Point) -> Point:
-        new_z = Point(self.x, self.p, self.u, self.v)
-        new_z -= z
-        return new_z
+        return Point(self.x - z.x, self.p - z.p, self.u - z.u, self.v - z.v)
 
 
 class BasePointOracle(ABC):
@@ -105,16 +101,16 @@ class OTProblemOracle(BasePointOracle):
 
     def f(self, z: Point) -> float:
         """Lagrangian function at point (p, z)."""
-        return (self.C * z.x).sum() + np.dot(z.u, z.x.sum(axis=0) - z.p) + np.dot(z.v, z.x.sum(axis=1) - self.q)
+        return (self.C * z.x).sum() + np.dot(z.u, z.x.sum(axis=1) - z.p) + np.dot(z.v, z.x.sum(axis=0) - self.q)
 
     def grad_x(self, z: Point) -> XPointType:
-        return self.C + z.x + np.outer(z.u, self.one) + np.outer(self.one, z.v)
+        return self.C + np.outer(z.u, self.one) + np.outer(self.one, z.v)
 
     def grad_p(self, z: Point) -> HPointType:
         return -z.u
 
     def grad_u(self, z: Point) -> HPointType:
-        return z.x.sum(axis=0) - z.p
+        return z.x.sum(axis=1) - z.p
 
     def grad_v(self, z: Point) -> HPointType:
-        return z.x.sum(axis=1) - self.q
+        return z.x.sum(axis=0) - self.q
