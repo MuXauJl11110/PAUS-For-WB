@@ -54,7 +54,7 @@ class PAUS:
             u_k = self.composite_mp(gamma, z_k, G_z_k)
 
             G_u_k = self.F.G(u_k) - self.F1.G(u_k)
-            G = G_u_k + G_z_k
+            G = G_u_k - G_z_k
             z_k.x = u_k.x * np.exp(-gamma * G.x)
             z_k.p = u_k.p * np.exp(-gamma * G.p)
             z_k.u = u_k.u - gamma * G.u
