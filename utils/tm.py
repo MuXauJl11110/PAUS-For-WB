@@ -1,6 +1,5 @@
 import numpy as np
 import ot
-from tqdm.notebook import tnrange
 
 
 def get_1d_tm(d: int) -> np.ndarray:
@@ -14,7 +13,7 @@ def get_2d_tm(d: int) -> np.ndarray:
     tm_width = d**2
     transport_matrix = np.zeros((tm_height, tm_width))
 
-    for i in tnrange(tm_height, desc="Generating Euclidean transport matrix."):
+    for i in range(tm_height):
         for j in range(tm_width):
             x_i = i % d
             y_i = i // d

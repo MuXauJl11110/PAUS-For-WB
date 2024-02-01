@@ -22,9 +22,10 @@ from utils.tm import get_2d_tm
 @click.option("--step_scale", default=1.5, help="Step scale.")
 @click.option("--max_iter", default=10000, help="Max iter.")
 @click.option("--composite_max_iter", default=10, help="Composite max iterations.")
-def run_notMNIST(d: int, t: int, n: int, method_name: str, step_scale: float, max_iter: int, composite_max_iter: int):
+def run_notMNIST(t: int, n: int, method_name: str, step_scale: float, max_iter: int, composite_max_iter: int):
     data = load_notMNIST_small("B")
     C = get_2d_tm(28)
+    d = 784
     oracles = [OTProblemOracle(data[i], C) for i in range(t)]
     F, F1 = OperatorOracle(oracles, d, t), OperatorOracle(oracles, d, n)
     if method_name == "paus":

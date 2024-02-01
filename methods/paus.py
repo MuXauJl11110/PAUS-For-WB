@@ -51,6 +51,7 @@ class PAUS:
             gamma = 1 / delta
 
         for i in range(max_iter):
+            print("Iter:", i)
             G_z_k = self.F.G(z_k) - self.F1.G(z_k)
             u_k = self.composite_mp(gamma, z_k, G_z_k)
 
