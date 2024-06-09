@@ -4,10 +4,10 @@ import torch
 from src.oracles.oracle import OperatorOracle
 from src.oracles.point import Point
 
-d_list: list[int] = [50, 250, 500]
+d_list: list[int] = [250, 500]
 n_list: list[int] = [50, 100]
 T_list: list[int] = [200, 300]
-full_list: list[bool] = [False]
+full_list: list[bool] = [True, False]
 
 
 @pytest.fixture(params=d_list)
@@ -70,5 +70,15 @@ def z(x: torch.Tensor, p: torch.Tensor, u: torch.Tensor, v: torch.Tensor):
 
 
 @pytest.fixture
-def oracle(C: torch.Tensor, q: torch.Tensor, n: int):
-    return OperatorOracle(C, q, n)
+def oracle(C: torch.Tensor, q: torch.Tensor, n: int, full: bool):
+    return OperatorOracle(C, q, n, full)
+
+
+@pytest.fixture
+def A(d: int):
+    return torch.cat(
+        (
+            torch.kron(torch.eye(d), torch.ones((1, d))),
+            torch.kron(torch.ones((1, d)), torch.eye(d)),
+        )
+    ).to_sparse()
