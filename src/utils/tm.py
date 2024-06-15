@@ -2,16 +2,18 @@ import ot
 import torch
 
 
-def get_1d_tm(d: int) -> torch.Tensor:
+def get_1d_tm(d: int, device: int | None = None) -> torch.Tensor:
     transport_matrix = ot.utils.dist0(d)
     transport_matrix /= transport_matrix.max()  # type: ignore
-    return torch.from_numpy(transport_matrix)
+    device = "cpu" if device is None else f"cuda:{device}"
+    return torch.from_numpy(transport_matrix).float().to(device)
 
 
-def get_2d_tm(d: int) -> torch.Tensor:
+def get_2d_tm(d: int, device: int | None = None) -> torch.Tensor:
     tm_height = d**2
     tm_width = d**2
-    transport_matrix = torch.zeros((tm_height, tm_width))
+    device = "cpu" if device is None else f"cuda:{device}"
+    transport_matrix = torch.zeros((tm_height, tm_width), device=device)
 
     for i in range(tm_height):
         for j in range(tm_width):

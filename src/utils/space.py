@@ -3,11 +3,15 @@ import torch
 from src.oracles.point import Point
 
 
-def init_space_point(d: int, T: int) -> Point:
-    log_x = torch.log(torch.ones(T, d, d) / (d * d))
-    log_p = torch.log(torch.ones(d) / d)
-    u = torch.zeros(T, d)
-    v = torch.zeros(T, d)
+def init_space_point(
+    d: int,
+    T: int,
+    device: int,
+) -> Point:
+    log_x = torch.log(torch.ones(T, d, d, device=device) / (d * d))
+    log_p = torch.log(torch.ones(d, device=device) / d)
+    u = torch.zeros(T, d, device=device)
+    v = torch.zeros(T, d, device=device)
 
     return Point(log_x, log_p, u, v)
 

@@ -8,7 +8,13 @@ from sklearn.datasets import fetch_openml, load_digits
 
 
 def get_gaussian(
-    d: int, K: int, mu_min: float = -5.0, mu_max: float = 5.0, sigma_min: float = 0.8, sigma_max: float = 1.8
+    d: int,
+    K: int,
+    mu_min: float = -5.0,
+    mu_max: float = 5.0,
+    sigma_min: float = 0.8,
+    sigma_max: float = 1.8,
+    device: int | None = None,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     :param int d: Gaussian support size.
@@ -38,23 +44,34 @@ def get_gaussian(
     bar_true /= bar_true.sum()
 
     # return gaus, bar_true, z
-    return torch.from_numpy(gaus), torch.from_numpy(bar_true)  # type: ignore
+    device = "cpu" if device is None else f"cuda:{device}"
+    return torch.from_numpy(gaus).float().to(device), torch.from_numpy(bar_true).float().to(device)  # type: ignore
 
 
-def load_mnist784(target_digit: int) -> torch.Tensor:
+def load_mnist784(
+    target_digit: int,
+    T: int,
+    device: int | None = None,
+) -> torch.Tensor:
     mndata = fetch_openml("mnist_784", version=1, as_frame=False, cache=True, data_home="datasets/MNIST")
     images, labels = mndata["data"], mndata["target"]
     normalized_digits = []
+    assert len(images) >= T
 
     for digit, label in zip(images, map(int, labels)):
         if label == target_digit:
             digit = np.array(digit, dtype=np.float64)
             normalized_digits.append(digit / digit.sum())
 
-    return torch.from_numpy(np.array(normalized_digits))
+    device = "cpu" if device is None else f"cuda:{device}"
+    return torch.from_numpy(np.array(normalized_digits)[:T]).float().to(device)
 
 
-def load_notMNIST_small(target_character: str) -> torch.Tensor:
+def load_notMNIST_small(
+    target_character: str,
+    T: int,
+    device: int | None = None,
+) -> torch.Tensor:
     dataset = []
     for path in os.listdir(f"./datasets/notMNIST_small/{target_character}"):
         path_letter = os.path.join(f"./datasets/notMNIST_small/{target_character}", path)
@@ -65,10 +82,16 @@ def load_notMNIST_small(target_character: str) -> torch.Tensor:
         except:
             pass
 
-    return torch.from_numpy(np.array(dataset))
+    device = "cpu" if device is None else f"cuda:{device}"
+    assert len(dataset) >= T
+    return torch.from_numpy(np.array(dataset)[:T]).float().to(device)
 
 
-def load_mnist64(target_digit: int) -> torch.Tensor:
+def load_mnist64(
+    target_digit: int,
+    T: int,
+    device: int | None = None,
+) -> torch.Tensor:
     digits = load_digits()
     normalized_digits = []
 
@@ -76,4 +99,6 @@ def load_mnist64(target_digit: int) -> torch.Tensor:
         if digits.target[i] == target_digit:  # type: ignore
             normalized_digits.append((digit / digit.sum()).flatten())
 
-    return torch.from_numpy(np.array(normalized_digits, dtype=np.float32))
+    device = "cpu" if device is None else f"cuda:{device}"
+    assert len(normalized_digits) >= T
+    return torch.from_numpy(np.array(normalized_digits)[:T]).float().to(device)

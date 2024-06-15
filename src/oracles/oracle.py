@@ -53,7 +53,15 @@ class BaseOracle(ABC):
 
 
 class OperatorOracle(BaseOracle):
-    def __init__(self, C: torch.Tensor, q: torch.Tensor, n: int, full: bool = True, gamma: float = 0.001):
+    def __init__(
+        self,
+        C: torch.Tensor,
+        q: torch.Tensor,
+        n: int,
+        full: bool = True,
+        gamma: float = 0.001,
+        device: int | None = None,
+    ):
         """
         :param torch.Tensor C: Cost matrix of shape (d, d).
         :param torch.Tensor q: Marginal distributions of shape (T, d).
@@ -67,6 +75,7 @@ class OperatorOracle(BaseOracle):
         self._q = q
         self._full = full
         self._gamma = gamma
+        self._device = "cpu" if device is None else f"cuda:{device}"
         assert self._n <= self._T
         assert C.shape == (self._d, self._d)
 
@@ -87,7 +96,7 @@ class OperatorOracle(BaseOracle):
         grad /= denominator
         grad += self._gamma * x
 
-        return torch.cat((grad, torch.zeros((self._T - denominator, self._d, self._d))))
+        return torch.cat((grad, torch.zeros((self._T - denominator, self._d, self._d), device=self._device)))
 
     def grad_p(self, z: Point) -> torch.Tensor:
         _, p, u, _, _, denominator = self._preprocess_z(z)
@@ -99,13 +108,13 @@ class OperatorOracle(BaseOracle):
         x, p, _, _, _, denominator = self._preprocess_z(z)
         grad = 2 * self._C_norm * (x.sum(dim=2) - p[None, :])
 
-        return torch.cat((grad, torch.zeros((self._T - denominator, self._d)))) / denominator
+        return torch.cat((grad, torch.zeros((self._T - denominator, self._d), device=self._device))) / denominator
 
     def grad_v(self, z: Point) -> torch.Tensor:
         x, _, _, _, q, denominator = self._preprocess_z(z)
         grad = 2 * self._C_norm * (x.sum(dim=1) - q)
 
-        return torch.cat((grad, torch.zeros((self._T - denominator, self._d)))) / denominator
+        return torch.cat((grad, torch.zeros((self._T - denominator, self._d), device=self._device))) / denominator
 
     def _preprocess_z(self, z: Point) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         if self._full:

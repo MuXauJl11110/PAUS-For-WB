@@ -14,6 +14,7 @@ class MirrorProx:
         F: OperatorOracle,
         log: bool = True,
         bar_true: torch.Tensor | None = None,
+        device: int | None = None,
     ):
         """
         :param OperatorOracle F: Operator of the problem.
@@ -28,14 +29,15 @@ class MirrorProx:
             for q_i in self.F._q:
                 self.dist_true += ot.emd2(bar_true, q_i, self.F._C)
             self.dist_true /= len(self.F._q)
+        self.device = "cpu" if device is None else f"cuda:{device}"
 
     def fit(
         self, L: float, gamma: float | None = None, max_iter: int = 1000
     ) -> tuple[torch.Tensor, dict[str, list[float]]]:
         history: dict[str, list[float]] = defaultdict(list)
 
-        z_k = init_space_point(self.F._d, self.F._T)
-        z_k_next = init_space_point(self.F._d, self.F._T)
+        z_k = init_space_point(self.F._d, self.F._T, self.device)
+        z_k_next = init_space_point(self.F._d, self.F._T, self.device)
 
         output_p = torch.zeros_like(z_k.log_p)
         if gamma is None:
@@ -61,7 +63,7 @@ class MirrorProx:
             if self.log and self.bar_true is not None and (i % 10 == 0):
                 d_gap = self.dual_gap(output_p)
                 print(f"Iter: {i}, Dual gap: {d_gap}")
-                history["dual_gap"].append(d_gap)
+                history["dual_gap"].append(d_gap.item())
                 history["iter"].append(i)
 
         return output_p, history

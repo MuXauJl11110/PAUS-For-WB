@@ -17,6 +17,7 @@ class PAUS:
         composite_max_iters: int,
         log: bool = True,
         bar_true: torch.Tensor | None = None,
+        device: int | None = None,
     ):
         """
         :param OperatorOracle F: Operator of the problem.
@@ -37,19 +38,24 @@ class PAUS:
             for q_i in self.F._q:
                 self.dist_true += ot.emd2(bar_true, q_i, self.F._C)
             self.dist_true /= len(self.F._q)
+        self.device = "cpu" if device is None else f"cuda:{device}"
 
     def fit(
         self, delta: float, gamma: float | None = None, max_iter: int = 1000
     ) -> tuple[torch.Tensor, dict[str, list[float]]]:
         history: dict[str, list[float]] = defaultdict(list)
 
-        z_k = init_space_point(self.F._d, self.F._T)
-        u_k = init_space_point(self.F._d, self.F._T)
+        z_k = init_space_point(self.F._d, self.F._T, self.device)
+        u_k = init_space_point(self.F._d, self.F._T, self.device)
 
-        output_p = torch.zeros_like(z_k.log_p)
+        output_p = z_k.log_p.clone()
         if gamma is None:
             gamma = 1 / delta
 
+        d_gap = self.dual_gap(output_p)
+        print(f"Iter: 0, Dual gap: {d_gap}")
+        history["dual_gap"].append(d_gap.item())
+        history["iter"].append(i)
         for i in range(max_iter):
             G_z_k = self.F.G(z_k) - self.F1.G(z_k)
             u_k = self.composite_mp(gamma, z_k, G_z_k)
@@ -63,22 +69,19 @@ class PAUS:
             z_k = project_onto_space(z_k)
             output_p = (i * output_p + torch.exp(u_k.log_p)) / (i + 1)
             output_p /= output_p.sum()
-            if self.log and self.bar_true is not None and (i % 10 == 0):
+            if self.log and self.bar_true is not None and (i % 1 == 0):
                 d_gap = self.dual_gap(output_p)
-                print(f"Iter: {i}, Dual gap: {d_gap}")
-                history["dual_gap"].append(d_gap)
+                print(f"Iter: {i+1}, Dual gap: {d_gap}")
+                history["dual_gap"].append(d_gap.item())
                 history["iter"].append(i)
 
         return output_p, history
 
     def composite_mp(self, gamma: float, z_k: Point, G_z_k: OperatorPoint) -> Point:
-        v_t = init_space_point(self.F._d, self.F._T)
-        v_t_next = init_space_point(self.F._d, self.F._T)
+        v_t = init_space_point(self.F._d, self.F._T, self.device)
+        v_t_next = init_space_point(self.F._d, self.F._T, self.device)
         eta = 1 / (2 * gamma * self.L_F1)
 
-        # output_p = torch.exp(v_t.log_p)
-        # dgap_prev = 1e10
-        # v_t_prev = init_space_point(self.F._d, self.F._T)
         for t in range(self.composite_max_iters):
             G_t = self.F1.G(v_t) + G_z_k
             v_t.log_x = (eta * z_k.log_x + v_t.log_x - gamma * eta * G_t.x) / (eta + 1)
@@ -93,14 +96,6 @@ class PAUS:
             v_t.u = 0.5 * (z_k.u + v_t.u - gamma * eta * G_t_next.u)
             v_t.v = 0.5 * (z_k.v + v_t.v - gamma * eta * G_t_next.v)
             v_t = project_onto_space(v_t)
-
-            # output_p = (t * output_p + torch.exp(v_t.log_p)) / (t + 1)
-            # dgap = self.dual_gap(output_p)
-            # if dgap >= dgap_prev:
-            #     print(t, dgap_prev)
-            #     return v_t_prev
-            # dgap_prev = dgap
-            # v_t_prev = deepcopy(v_t)
 
         return v_t
 
